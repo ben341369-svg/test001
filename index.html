@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重大交通事故通報系統 - 歷史對話繼承版</title>
+  <title>重大交通事故通報系統 - NotebookLM 風格 (支援多輪繼承與結案重置)</title>
   <style>
     :root {
       --bg-color: #f8f9fa;
@@ -12,6 +12,7 @@
       --ai-msg-bg: #f1f3f4;
       --primary-color: #1a73e8;
       --border-color: #e0e0e0;
+      --danger-color: #d93025;
     }
 
     * { box-sizing: border-box; }
@@ -25,16 +26,35 @@
       height: 100vh;
     }
 
+    /* 頂部標題與新案按鈕 */
     header {
       background-color: var(--card-bg);
       border-bottom: 1px solid var(--border-color);
-      padding: 15px 20px;
+      padding: 12px 20px;
       text-align: center;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
     }
-    header h1 { margin: 0; font-size: 1.25rem; color: #202124; }
+    header h1 { margin: 0; font-size: 1.2rem; color: #202124; }
     header p { margin: 4px 0 0; font-size: 0.85rem; color: #5f6368; }
+    
+    .reset-top-btn {
+      margin-top: 8px;
+      padding: 5px 12px;
+      background-color: #fff;
+      color: var(--danger-color);
+      border: 1px solid var(--danger-color);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .reset-top-btn:hover {
+      background-color: var(--danger-color);
+      color: #fff;
+    }
 
+    /* 中間對話串列區 */
     #chat-container {
       flex: 1;
       overflow-y: auto;
@@ -62,6 +82,16 @@
     .user .message-bubble { background-color: var(--user-msg-bg); color: #0d47a1; border-bottom-right-radius: 2px; }
     .ai .message-bubble { background-color: var(--ai-msg-bg); color: #202124; border: 1px solid var(--border-color); border-bottom-left-radius: 2px; }
 
+    .system-notice {
+      text-align: center;
+      color: #5f6368;
+      font-size: 0.85rem;
+      margin: 10px 0;
+      padding: 8px;
+      background-color: #e8f0fe;
+      border-radius: 6px;
+    }
+
     .copy-btn {
       align-self: flex-end;
       margin-top: 6px;
@@ -79,6 +109,7 @@
     }
     .copy-btn:hover { background-color: #f1f3f4; color: var(--primary-color); }
 
+    /* 下方輸入區 */
     footer { background-color: var(--card-bg); border-top: 1px solid var(--border-color); padding: 15px 20px; }
     .input-wrapper { max-width: 800px; margin: 0 auto; display: flex; gap: 10px; }
     textarea {
@@ -103,7 +134,8 @@
 
   <header>
     <h1>新竹區監理所 - 重大交通事故通報格式化工具</h1>
-    <p>支援多輪對話與資訊繼承：可分次補充車號、駕駛人等完整事故細節</p>
+    <p>支援多輪資訊繼承 | 輸入「結案」或「reset」會自動產出結案簡訊並清空記憶</p>
+    <button class="reset-top-btn" onclick="resetConversation(true)">🔄 手動開立新案件 (清空歷史)</button>
   </header>
 
   <main id="chat-container">
@@ -120,15 +152,17 @@
   </footer>
 
   <script>
+    // 連結你的 GAS Web App URL
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvnBeEqdFLnIRioKLb8ciBT5RhiLBkTG8AG9ykwFGhHQ427P5ik1deFmKkegL2AyY/exec";
 
     const chatContainer = document.getElementById('chat-container');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    // 關鍵：在記憶體中維護這會話的歷史對話陣列
+    // 核心：在前端記憶體維護此會話的歷史對話
     let conversationHistory = [];
 
+    // Enter 快捷發送 (Shift+Enter 換行)
     userInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -136,25 +170,42 @@
       }
     });
 
+    // 清空歷史與對話畫面 (手動或結案觸發)
+    function resetConversation(showAlert = false) {
+      conversationHistory = [];
+      chatContainer.innerHTML = `
+        <div class="message-row ai">
+          <div class="message-bubble">🔄 已成功開立新案件！您可以開始輸入全新案件的事故資訊。</div>
+        </div>
+      `;
+      if (showAlert) {
+        userInput.focus();
+      }
+    }
+
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
 
-      // 1. 渲染使用者 UI 並將對話加入歷史紀錄
+      // 檢查是否輸入結案關鍵字
+      const lowerText = text.toLowerCase();
+      const isResetCmd = (lowerText === '結案' || lowerText === 'reset' || lowerText === 'reest');
+
+      // 1. 渲染使用者 UI 並記錄歷史
       appendMessage('user', text);
       conversationHistory.push({ role: "user", text: text });
       
-      // 2. 清空輸入欄位
+      // 2. 清空輸入欄位並鎖定
       userInput.value = '';
       userInput.disabled = true;
       sendBtn.disabled = true;
 
-      // 3. 顯示 AI 處理中動畫
-      const aiRowEl = appendMessage('ai', '<span class="loading-dots">更新簡訊中，請稍候<span>.</span><span>.</span><span>.</span></span>');
+      // 3. 顯示處理中動畫
+      const aiRowEl = appendMessage('ai', '<span class="loading-dots">處理中，請稍候<span>.</span><span>.</span><span>.</span></span>');
       const aiBubbleEl = aiRowEl.querySelector('.message-bubble');
 
       try {
-        // 關鍵：將完整的歷史紀錄傳送給 GAS
+        // 將完整歷史紀錄傳給 GAS
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -166,10 +217,20 @@
         if (data.reply) {
           aiBubbleEl.innerText = data.reply;
           
-          // 將 AI 產出的簡訊結果也寫回歷史紀錄，供下一輪繼承
-          conversationHistory.push({ role: "model", text: data.reply });
+          // 如果這輪是「結案/reset」，顯示完成後自動清空歷史陣列
+          if (isResetCmd) {
+            conversationHistory = []; // 清空記憶
+            
+            const noticeEl = document.createElement('div');
+            noticeEl.className = 'system-notice';
+            noticeEl.innerText = "─── 本案已結案，對話記憶已自動清空，下次輸入將作為【全新案件】 ───";
+            chatContainer.appendChild(noticeEl);
+          } else {
+            // 正常狀況下將 AI 回應加入歷史紀錄
+            conversationHistory.push({ role: "model", text: data.reply });
+          }
 
-          // 加入一鍵複製按鈕
+          // 一鍵複製按鈕
           const copyBtn = document.createElement('button');
           copyBtn.className = 'copy-btn';
           copyBtn.innerHTML = '📋 複製簡訊內容';
