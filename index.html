@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重大交通事故通報系統 - NotebookLM 風格</title>
+  <title>重大交通事故通報系統 - 歷史對話繼承版</title>
   <style>
     :root {
       --bg-color: #f8f9fa;
@@ -16,7 +16,7 @@
 
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background-color: var(--bg-color);
       margin: 0;
       padding: 0;
@@ -25,7 +25,6 @@
       height: 100vh;
     }
 
-    /* 頂部標題列 */
     header {
       background-color: var(--card-bg);
       border-bottom: 1px solid var(--border-color);
@@ -36,7 +35,6 @@
     header h1 { margin: 0; font-size: 1.25rem; color: #202124; }
     header p { margin: 4px 0 0; font-size: 0.85rem; color: #5f6368; }
 
-    /* 中間對話紀錄區 (可滾動) */
     #chat-container {
       flex: 1;
       overflow-y: auto;
@@ -49,11 +47,7 @@
       gap: 16px;
     }
 
-    .message-row {
-      display: flex;
-      flex-direction: column;
-      max-width: 85%;
-    }
+    .message-row { display: flex; flex-direction: column; max-width: 85%; }
     .message-row.user { align-self: flex-end; }
     .message-row.ai { align-self: flex-start; width: 100%; }
 
@@ -64,21 +58,10 @@
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
-      position: relative;
     }
-    .user .message-bubble {
-      background-color: var(--user-msg-bg);
-      color: #0d47a1;
-      border-bottom-right-radius: 2px;
-    }
-    .ai .message-bubble {
-      background-color: var(--ai-msg-bg);
-      color: #202124;
-      border: 1px solid var(--border-color);
-      border-bottom-left-radius: 2px;
-    }
+    .user .message-bubble { background-color: var(--user-msg-bg); color: #0d47a1; border-bottom-right-radius: 2px; }
+    .ai .message-bubble { background-color: var(--ai-msg-bg); color: #202124; border: 1px solid var(--border-color); border-bottom-left-radius: 2px; }
 
-    /* 一鍵複製按鈕 */
     .copy-btn {
       align-self: flex-end;
       margin-top: 6px;
@@ -96,51 +79,21 @@
     }
     .copy-btn:hover { background-color: #f1f3f4; color: var(--primary-color); }
 
-    /* 下方輸入區 */
-    footer {
-      background-color: var(--card-bg);
-      border-top: 1px solid var(--border-color);
-      padding: 15px 20px;
-    }
-    .input-wrapper {
-      max-width: 800px;
-      margin: 0 auto;
-      display: flex;
-      gap: 10px;
-      position: relative;
-    }
+    footer { background-color: var(--card-bg); border-top: 1px solid var(--border-color); padding: 15px 20px; }
+    .input-wrapper { max-width: 800px; margin: 0 auto; display: flex; gap: 10px; }
     textarea {
-      flex: 1;
-      height: 60px;
-      padding: 10px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      resize: none;
-      font-family: inherit;
-      outline: none;
+      flex: 1; height: 60px; padding: 10px 14px; border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 0.95rem; resize: none; font-family: inherit; outline: none;
     }
     textarea:focus { border-color: var(--primary-color); }
     
     button.send-btn {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0 20px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
+      background-color: var(--primary-color); color: white; border: none; border-radius: 8px;
+      padding: 0 20px; font-size: 0.95rem; font-weight: 500; cursor: pointer;
     }
-    button.send-btn:hover { background-color: #1557b0; }
     button.send-btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
-    /* 載入中動畫效果 */
-    .loading-dots span {
-      animation: blink 1.4s infinite fill-mode;
-      font-weight: bold;
-    }
+    .loading-dots span { animation: blink 1.4s infinite fill-mode; font-weight: bold; }
     .loading-dots span:nth-child(2) { animation-delay: .2s; }
     .loading-dots span:nth-child(3) { animation-delay: .4s; }
     @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
@@ -150,33 +103,32 @@
 
   <header>
     <h1>新竹區監理所 - 重大交通事故通報格式化工具</h1>
-    <p>輸入雜亂文字，AI 自動判斷轄區並轉換為標準通報簡訊（自動進行身分證號去識別化）</p>
+    <p>支援多輪對話與資訊繼承：可分次補充車號、駕駛人等完整事故細節</p>
   </header>
 
-  <!-- 中間對話視窗 -->
   <main id="chat-container">
     <div class="message-row ai">
-      <div class="message-bubble">👋 你好！請在下方輸入欄貼上事故雜亂文字，我會依據新竹區監理所的最新通報庫自動為您生成格式化簡訊。</div>
+      <div class="message-bubble">👋 你好！請貼上事故資訊。後續若有補充資料（如新增車號、駕駛人姓名），直接在下方輸入即可，我會自動更新通報簡訊內容。</div>
     </div>
   </main>
 
-  <!-- 下方固定輸入列 -->
   <footer>
     <div class="input-wrapper">
-      <textarea id="userInput" placeholder="請貼上車禍通報雜亂資訊... (按下 Enter 即可發送，Shift + Enter 換行)"></textarea>
+      <textarea id="userInput" placeholder="請貼上車禍通報資訊... (Enter 發送，Shift + Enter 換行)"></textarea>
       <button id="sendBtn" class="send-btn" onclick="sendMessage()">發送通報</button>
     </div>
   </footer>
 
   <script>
-    // ⚠️ 已經自動連結你的專屬 GAS Web App URL
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvnBeEqdFLnIRioKLb8ciBT5RhiLBkTG8AG9ykwFGhHQ427P5ik1deFmKkegL2AyY/exec";
 
     const chatContainer = document.getElementById('chat-container');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    // 支持 Enter 鍵發送 (Shift + Enter 換行)
+    // 關鍵：在記憶體中維護這會話的歷史對話陣列
+    let conversationHistory = [];
+
     userInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -188,32 +140,36 @@
       const text = userInput.value.trim();
       if (!text) return;
 
-      // 1. 建立使用者訊息氣泡
+      // 1. 渲染使用者 UI 並將對話加入歷史紀錄
       appendMessage('user', text);
+      conversationHistory.push({ role: "user", text: text });
       
-      // 2. 清空輸入欄位並鎖定按鈕
+      // 2. 清空輸入欄位
       userInput.value = '';
       userInput.disabled = true;
       sendBtn.disabled = true;
 
-      // 3. 建立 AI 回覆中的 Placeholder 氣泡 (顯示載入動畫)
-      const aiRowEl = appendMessage('ai', '<span class="loading-dots">處理中，請稍候<span>.</span><span>.</span><span>.</span></span>');
+      // 3. 顯示 AI 處理中動畫
+      const aiRowEl = appendMessage('ai', '<span class="loading-dots">更新簡訊中，請稍候<span>.</span><span>.</span><span>.</span></span>');
       const aiBubbleEl = aiRowEl.querySelector('.message-bubble');
 
       try {
+        // 關鍵：將完整的歷史紀錄傳送給 GAS
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({ history: conversationHistory })
         });
 
         const data = await response.json();
 
         if (data.reply) {
-          // 替換動畫內容為實際的 AI 回覆簡訊
           aiBubbleEl.innerText = data.reply;
           
-          // 新增一鍵複製按鈕
+          // 將 AI 產出的簡訊結果也寫回歷史紀錄，供下一輪繼承
+          conversationHistory.push({ role: "model", text: data.reply });
+
+          // 加入一鍵複製按鈕
           const copyBtn = document.createElement('button');
           copyBtn.className = 'copy-btn';
           copyBtn.innerHTML = '📋 複製簡訊內容';
@@ -226,7 +182,6 @@
       } catch (error) {
         aiBubbleEl.innerText = "❌ 連線發生錯誤：" + error.message;
       } finally {
-        // 解除輸入欄位鎖定
         userInput.disabled = false;
         sendBtn.disabled = false;
         userInput.focus();
@@ -234,27 +189,22 @@
       }
     }
 
-    // 將訊息渲染到聊天畫面的輔助函式
     function appendMessage(sender, textHtml) {
       const row = document.createElement('div');
       row.className = `message-row ${sender}`;
-      
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';
       bubble.innerHTML = textHtml;
-      
       row.appendChild(bubble);
       chatContainer.appendChild(row);
       scrollToBottom();
       return row;
     }
 
-    // 自動滾動到底部
     function scrollToBottom() {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // 複製簡訊文字至剪貼簿
     function copyToClipboard(text, btnElement) {
       navigator.clipboard.writeText(text).then(() => {
         const originalText = btnElement.innerHTML;
@@ -264,8 +214,6 @@
           btnElement.innerHTML = originalText;
           btnElement.style.color = '';
         }, 2000);
-      }).catch(err => {
-        alert('複製失敗，請手動選取複製');
       });
     }
   </script>
