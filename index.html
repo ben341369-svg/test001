@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重大交通事故通報自動格式化系統</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; line-height: 1.6; }
+    textarea { width: 100%; height: 180px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+    button { background-color: #0275d8; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    button:hover { background-color: #025aa5; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .result-box { margin-top: 25px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; position: relative; }
+    pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 15px; margin: 0; }
+    .status { color: #6c757d; font-size: 14px; margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+  <h2>新竹區監理所 - 重大交通事故通報格式化工具</h2>
+  <p style="color: #666; font-size: 14px;">輸入說明：貼上雜亂事故文字。系統會在傳送前於本地自動將身分證字號進行去識別化遮蔽。</p>
+
+  <textarea id="userInput" placeholder="請在此貼上車禍通報雜亂資訊（例如：通報演練：今日台1線發生事故，駕駛張三 A123456789...）"></textarea><br>
+  <button id="submitBtn" onclick="generateReport()">產出簡訊通報格式</button>
+  <div id="status" class="status"></div>
+
+  <div class="result-box">
+    <h3>通報簡訊產出結果：</h3>
+    <pre id="outputResult">等待輸入中...</pre>
+  </div>
+
+  <script>
+    // ⚠️ 請替換為 Step 1 取得的 GAS Web App URL
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvnBeEqdFLnIRioKLb8ciBT5RhiLBkTG8AG9ykwFGhHQ427P5ik1deFmKkegL2AyY/exec";
+
+    async function generateReport() {
+      const input = document.getElementById("userInput").value.trim();
+      const outputEl = document.getElementById("outputResult");
+      const statusEl = document.getElementById("status");
+      const btn = document.getElementById("submitBtn");
+
+      if (!input) {
+        alert("請輸入通報內容！");
+        return;
+      }
+
+      // UI 狀態更新
+      btn.disabled = true;
+      statusEl.innerText = "正在進行本地去識別化並傳送至 API 處理中...";
+      outputEl.innerText = "處理中，請稍候...";
+
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" }, // GAS 相容格式
+          body: JSON.stringify({ message: input })
+        });
+
+        const data = await response.json();
+
+        if (data.reply) {
+          outputEl.innerText = data.reply;
+          statusEl.innerText = "產出完成！";
+        } else {
+          outputEl.innerText = "系統回傳格式異常：" + JSON.stringify(data);
+          statusEl.innerText = "處理失敗";
+        }
+      } catch (error) {
+        outputEl.innerText = "連線發生錯誤：" + error.message;
+        statusEl.innerText = "連線失敗";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+</body>
+</html>
