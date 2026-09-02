@@ -3,74 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重大交通事故通報自動格式化系統</title>
+  <title>重大交通事故通報系統 - NotebookLM 風格</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; line-height: 1.6; }
-    textarea { width: 100%; height: 180px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
-    button { background-color: #0275d8; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
-    button:hover { background-color: #025aa5; }
-    button:disabled { background-color: #cccccc; cursor: not-allowed; }
-    .result-box { margin-top: 25px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; position: relative; }
-    pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 15px; margin: 0; }
-    .status { color: #6c757d; font-size: 14px; margin-top: 5px; }
+    :root {
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --user-msg-bg: #e3f2fd;
+      --ai-msg-bg: #f1f3f4;
+      --primary-color: #1a73e8;
+      --border-color: #e0e0e0;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* 頂部標題列 */
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 15px 20px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; color: #202124; }
+    header p { margin: 4px 0 0; font-size: 0.85rem; color: #5f6368; }
+
+    /* 中間對話紀錄區 (可滾動) */
+    #chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 85%;
+    }
+    .message-row.user { align-self: flex-end; }
+    .message-row.ai { align-self: flex-start; width: 100%; }
+
+    .message-bubble {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      position: relative;
+    }
+    .user .message-bubble {
+      background-color: var(--user-msg-bg);
+      color: #0d47a1;
+      border-bottom-right-radius: 2px;
+    }
+    .ai .message-bubble {
+      background-color: var(--ai-msg-bg);
+      color: #202124;
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 2px;
+    }
+
+    /* 一鍵複製按鈕 */
+    .copy-btn {
+      align-self: flex-end;
+      margin-top: 6px;
+      background-color: #ffffff;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      color: #3c4043;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background-color: #f1f3f4; color: var(--primary-color); }
+
+    /* 下方輸入區 */
+    footer {
+      background-color: var(--card-bg);
+      border-top: 1px solid var(--border-color);
+      padding: 15px 20px;
+    }
+    .input-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      position: relative;
+    }
+    textarea {
+      flex: 1;
+      height: 60px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      resize: none;
+      font-family: inherit;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--primary-color); }
+    
+    button.send-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0 20px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button.send-btn:hover { background-color: #1557b0; }
+    button.send-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+    /* 載入中動畫效果 */
+    .loading-dots span {
+      animation: blink 1.4s infinite fill-mode;
+      font-weight: bold;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: .2s; }
+    .loading-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
   </style>
 </head>
 <body>
 
-  <h2>新竹區監理所 - 重大交通事故通報格式化工具</h2>
-  <p style="color: #666; font-size: 14px;">輸入說明：貼上雜亂事故文字。系統會在傳送前於本地自動將身分證字號進行去識別化遮蔽。</p>
+  <header>
+    <h1>新竹區監理所 - 重大交通事故通報格式化工具</h1>
+    <p>輸入雜亂文字，AI 自動判斷轄區並轉換為標準通報簡訊（自動進行身分證號去識別化）</p>
+  </header>
 
-  <textarea id="userInput" placeholder="請在此貼上車禍通報雜亂資訊（例如：通報演練：今日台1線發生事故，駕駛張三 A123456789...）"></textarea><br>
-  <button id="submitBtn" onclick="generateReport()">產出簡訊通報格式</button>
-  <div id="status" class="status"></div>
+  <!-- 中間對話視窗 -->
+  <main id="chat-container">
+    <div class="message-row ai">
+      <div class="message-bubble">👋 你好！請在下方輸入欄貼上事故雜亂文字，我會依據新竹區監理所的最新通報庫自動為您生成格式化簡訊。</div>
+    </div>
+  </main>
 
-  <div class="result-box">
-    <h3>通報簡訊產出結果：</h3>
-    <pre id="outputResult">等待輸入中...</pre>
-  </div>
+  <!-- 下方固定輸入列 -->
+  <footer>
+    <div class="input-wrapper">
+      <textarea id="userInput" placeholder="請貼上車禍通報雜亂資訊... (按下 Enter 即可發送，Shift + Enter 換行)"></textarea>
+      <button id="sendBtn" class="send-btn" onclick="sendMessage()">發送通報</button>
+    </div>
+  </footer>
 
   <script>
-    // ⚠️ 請替換為 Step 1 取得的 GAS Web App URL
+    // ⚠️ 已經自動連結你的專屬 GAS Web App URL
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvnBeEqdFLnIRioKLb8ciBT5RhiLBkTG8AG9ykwFGhHQ427P5ik1deFmKkegL2AyY/exec";
 
-    async function generateReport() {
-      const input = document.getElementById("userInput").value.trim();
-      const outputEl = document.getElementById("outputResult");
-      const statusEl = document.getElementById("status");
-      const btn = document.getElementById("submitBtn");
+    const chatContainer = document.getElementById('chat-container');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
 
-      if (!input) {
-        alert("請輸入通報內容！");
-        return;
+    // 支持 Enter 鍵發送 (Shift + Enter 換行)
+    userInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
       }
+    });
 
-      // UI 狀態更新
-      btn.disabled = true;
-      statusEl.innerText = "正在進行本地去識別化並傳送至 API 處理中...";
-      outputEl.innerText = "處理中，請稍候...";
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      // 1. 建立使用者訊息氣泡
+      appendMessage('user', text);
+      
+      // 2. 清空輸入欄位並鎖定按鈕
+      userInput.value = '';
+      userInput.disabled = true;
+      sendBtn.disabled = true;
+
+      // 3. 建立 AI 回覆中的 Placeholder 氣泡 (顯示載入動畫)
+      const aiRowEl = appendMessage('ai', '<span class="loading-dots">處理中，請稍候<span>.</span><span>.</span><span>.</span></span>');
+      const aiBubbleEl = aiRowEl.querySelector('.message-bubble');
 
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, // GAS 相容格式
-          body: JSON.stringify({ message: input })
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ message: text })
         });
 
         const data = await response.json();
 
         if (data.reply) {
-          outputEl.innerText = data.reply;
-          statusEl.innerText = "產出完成！";
+          // 替換動畫內容為實際的 AI 回覆簡訊
+          aiBubbleEl.innerText = data.reply;
+          
+          // 新增一鍵複製按鈕
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'copy-btn';
+          copyBtn.innerHTML = '📋 複製簡訊內容';
+          copyBtn.onclick = () => copyToClipboard(data.reply, copyBtn);
+          aiRowEl.appendChild(copyBtn);
+
         } else {
-          outputEl.innerText = "系統回傳格式異常：" + JSON.stringify(data);
-          statusEl.innerText = "處理失敗";
+          aiBubbleEl.innerText = "⚠️ 系統回傳格式異常：" + JSON.stringify(data);
         }
       } catch (error) {
-        outputEl.innerText = "連線發生錯誤：" + error.message;
-        statusEl.innerText = "連線失敗";
+        aiBubbleEl.innerText = "❌ 連線發生錯誤：" + error.message;
       } finally {
-        btn.disabled = false;
+        // 解除輸入欄位鎖定
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        userInput.focus();
+        scrollToBottom();
       }
+    }
+
+    // 將訊息渲染到聊天畫面的輔助函式
+    function appendMessage(sender, textHtml) {
+      const row = document.createElement('div');
+      row.className = `message-row ${sender}`;
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = textHtml;
+      
+      row.appendChild(bubble);
+      chatContainer.appendChild(row);
+      scrollToBottom();
+      return row;
+    }
+
+    // 自動滾動到底部
+    function scrollToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // 複製簡訊文字至剪貼簿
+    function copyToClipboard(text, btnElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '✅ 已複製！';
+        btnElement.style.color = '#0f9d58';
+        setTimeout(() => {
+          btnElement.innerHTML = originalText;
+          btnElement.style.color = '';
+        }, 2000);
+      }).catch(err => {
+        alert('複製失敗，請手動選取複製');
+      });
     }
   </script>
 
