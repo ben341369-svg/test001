@@ -192,7 +192,7 @@
 
   <footer>
     <div class="input-wrapper">
-      <textarea id="userInput" placeholder="請貼上車禍通報資訊... (Enter 發送，Shift + Enter 換行)"></textarea>
+      <textarea id="userInput" placeholder="請貼上車禍通報資訊... (按 Enter 換行，點擊右側按鈕發送)"></textarea>
       <button id="sendBtn" class="send-btn" onclick="sendMessage()">發送通報</button>
     </div>
   </footer>
@@ -217,14 +217,6 @@
 
     // 監聽輸入動態伸縮
     userInput.addEventListener('input', autoResizeTextarea);
-
-    // Enter 快捷發送 (Shift+Enter 換行)
-    userInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
 
     // 清空歷史與對話畫面 (手動或結案觸發)
     function resetConversation(showAlert = false) {
