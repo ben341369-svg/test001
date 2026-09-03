@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重大交通事故通報系統 - NotebookLM 風格 (支援多輪繼承與結案重置)</title>
+  <title>重大交通事故通報系統 - NotebookLM 風格 (支援動態伸縮與結案重置)</title>
   <style>
     :root {
       --bg-color: #f8f9fa;
@@ -109,25 +109,71 @@
     }
     .copy-btn:hover { background-color: #f1f3f4; color: var(--primary-color); }
 
-    /* 下方輸入區 */
-    footer { background-color: var(--card-bg); border-top: 1px solid var(--border-color); padding: 15px 20px; }
-    .input-wrapper { max-width: 800px; margin: 0 auto; display: flex; gap: 10px; }
+    /* 下方輸入區：NotebookLM 自動伸縮與手機優化 */
+    footer {
+      background-color: var(--card-bg);
+      border-top: 1px solid var(--border-color);
+      padding: 10px 15px;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+
+    .input-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end; /* 按鈕保持置底 */
+    }
+
     textarea {
-      flex: 1; height: 60px; padding: 10px 14px; border: 1px solid var(--border-color);
-      border-radius: 8px; font-size: 0.95rem; resize: none; font-family: inherit; outline: none;
+      flex: 1;
+      min-height: 44px;      /* 預設約 1-2 行高 */
+      max-height: 300px;     /* 約 13 行的最大高度 */
+      height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 16px;       /* 防止 iOS 點擊時自動放大畫面 */
+      line-height: 1.5;
+      resize: none;          /* 停用拖曳變形 */
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+      overflow-y: auto;      /* 超過最大高度時顯示捲軸 */
+      transition: border-color 0.2s;
     }
+
     textarea:focus { border-color: var(--primary-color); }
-    
+
     button.send-btn {
-      background-color: var(--primary-color); color: white; border: none; border-radius: 8px;
-      padding: 0 20px; font-size: 0.95rem; font-weight: 500; cursor: pointer;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      height: 44px;          /* 與輸入框預設高度一致 */
+      padding: 0 18px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;        /* 防止手機上被擠壓變形 */
     }
+
     button.send-btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
     .loading-dots span { animation: blink 1.4s infinite fill-mode; font-weight: bold; }
     .loading-dots span:nth-child(2) { animation-delay: .2s; }
     .loading-dots span:nth-child(3) { animation-delay: .4s; }
     @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
+
+    /* RWD 手機版微調 */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.05rem; }
+      #chat-container { padding: 12px; }
+      .message-row { max-width: 92%; }
+      footer { padding: 8px 10px; }
+    }
   </style>
 </head>
 <body>
@@ -162,6 +208,16 @@
     // 核心：在前端記憶體維護此會話的歷史對話
     let conversationHistory = [];
 
+    // NotebookLM 風格：動態計算輸入框高度（上限約 13 行 / 300px）
+    function autoResizeTextarea() {
+      userInput.style.height = 'auto'; // 先重置以計算精確 scrollHeight
+      const newHeight = Math.min(userInput.scrollHeight, 300); // 限制最大 300px
+      userInput.style.height = newHeight + 'px';
+    }
+
+    // 監聽輸入動態伸縮
+    userInput.addEventListener('input', autoResizeTextarea);
+
     // Enter 快捷發送 (Shift+Enter 換行)
     userInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -173,6 +229,7 @@
     // 清空歷史與對話畫面 (手動或結案觸發)
     function resetConversation(showAlert = false) {
       conversationHistory = [];
+      userInput.style.height = '44px'; // 恢復預設高度
       chatContainer.innerHTML = `
         <div class="message-row ai">
           <div class="message-bubble">🔄 已成功開立新案件！您可以開始輸入全新案件的事故資訊。</div>
@@ -195,8 +252,9 @@
       appendMessage('user', text);
       conversationHistory.push({ role: "user", text: text });
       
-      // 2. 清空輸入欄位並鎖定
+      // 2. 清空輸入欄位、恢復預設高度並鎖定
       userInput.value = '';
+      userInput.style.height = '44px';
       userInput.disabled = true;
       sendBtn.disabled = true;
 
