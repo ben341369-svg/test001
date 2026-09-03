@@ -13,6 +13,7 @@
       --primary-color: #1a73e8;
       --border-color: #e0e0e0;
       --danger-color: #d93025;
+      --time-color: #70757a;
     }
 
     * { box-sizing: border-box; }
@@ -82,6 +83,16 @@
     .user .message-bubble { background-color: var(--user-msg-bg); color: #0d47a1; border-bottom-right-radius: 2px; }
     .ai .message-bubble { background-color: var(--ai-msg-bg); color: #202124; border: 1px solid var(--border-color); border-bottom-left-radius: 2px; }
 
+    /* 對話時間標籤樣式 */
+    .message-time {
+      font-size: 0.75rem;
+      color: var(--time-color);
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+    .user .message-time { text-align: right; }
+    .ai .message-time { text-align: left; }
+
     .system-notice {
       text-align: center;
       color: #5f6368;
@@ -92,9 +103,15 @@
       border-radius: 6px;
     }
 
+    /* 操作功能區域 (包含一鍵複製) */
+    .message-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
     .copy-btn {
-      align-self: flex-end;
-      margin-top: 6px;
       background-color: #ffffff;
       border: 1px solid #dadce0;
       border-radius: 4px;
@@ -185,9 +202,7 @@
   </header>
 
   <main id="chat-container">
-    <div class="message-row ai">
-      <div class="message-bubble">👋 你好！請貼上事故資訊。後續若有補充資料（如新增車號、駕駛人姓名），直接在下方輸入即可，我會自動更新通報簡訊內容。</div>
-    </div>
+    <!-- 初始化歡迎訊息 -->
   </main>
 
   <footer>
@@ -218,15 +233,27 @@
     // 監聽輸入動態伸縮
     userInput.addEventListener('input', autoResizeTextarea);
 
+    // 取得當前格式化時間 (例如: 09/03 14:25)
+    function getCurrentFormattedTime() {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const date = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${month}/${date} ${hours}:${minutes}`;
+    }
+
+    // 初始化頁面
+    window.addEventListener('DOMContentLoaded', () => {
+      appendMessage('ai', '👋 你好！請貼上事故資訊。後續若有補充資料（如新增車號、駕駛人姓名），直接在下方輸入即可，我會自動更新通報簡訊內容。');
+    });
+
     // 清空歷史與對話畫面 (手動或結案觸發)
     function resetConversation(showAlert = false) {
       conversationHistory = [];
       userInput.style.height = '44px'; // 恢復預設高度
-      chatContainer.innerHTML = `
-        <div class="message-row ai">
-          <div class="message-bubble">🔄 已成功開立新案件！您可以開始輸入全新案件的事故資訊。</div>
-        </div>
-      `;
+      chatContainer.innerHTML = '';
+      appendMessage('ai', '🔄 已成功開立新案件！您可以開始輸入全新案件的事故資訊。');
       if (showAlert) {
         userInput.focus();
       }
@@ -252,7 +279,7 @@
 
       // 3. 顯示處理中動畫
       const aiRowEl = appendMessage('ai', '<span class="loading-dots">處理中，請稍候<span>.</span><span>.</span><span>.</span></span>');
-      const aiBubbleEl = aiRowEl.querySelector('.message-bubble');
+      const aiBubbleTextEl = aiRowEl.querySelector('.message-text');
 
       try {
         // 將完整歷史紀錄傳給 GAS
@@ -265,7 +292,7 @@
         const data = await response.json();
 
         if (data.reply) {
-          aiBubbleEl.innerText = data.reply;
+          aiBubbleTextEl.innerText = data.reply;
           
           // 如果這輪是「結案/reset」，顯示完成後自動清空歷史陣列
           if (isResetCmd) {
@@ -280,18 +307,24 @@
             conversationHistory.push({ role: "model", text: data.reply });
           }
 
-          // 一鍵複製按鈕
+          // 建立一鍵複製按鈕（放在時間下方）
+          const actionsEl = document.createElement('div');
+          actionsEl.className = 'message-actions';
+          
           const copyBtn = document.createElement('button');
           copyBtn.className = 'copy-btn';
           copyBtn.innerHTML = '📋 複製簡訊內容';
-          copyBtn.onclick = () => copyToClipboard(data.reply, copyBtn);
-          aiRowEl.appendChild(copyBtn);
+          // 關鍵：複製時傳入純文字節點 (aiBubbleTextEl)，只複製簡訊內容、完全不包含時間
+          copyBtn.onclick = () => copyToClipboard(aiBubbleTextEl.innerText, copyBtn);
+          
+          actionsEl.appendChild(copyBtn);
+          aiRowEl.appendChild(actionsEl);
 
         } else {
-          aiBubbleEl.innerText = "⚠️ 系統回傳格式異常：" + JSON.stringify(data);
+          aiBubbleTextEl.innerText = "⚠️ 系統回傳格式異常：" + JSON.stringify(data);
         }
       } catch (error) {
-        aiBubbleEl.innerText = "❌ 連線發生錯誤：" + error.message;
+        aiBubbleTextEl.innerText = "❌ 連線發生錯誤：" + error.message;
       } finally {
         userInput.disabled = false;
         sendBtn.disabled = false;
@@ -301,12 +334,28 @@
     }
 
     function appendMessage(sender, textHtml) {
+      const timeStr = getCurrentFormattedTime();
+      
       const row = document.createElement('div');
       row.className = `message-row ${sender}`;
+      
+      // 1. 氣泡與文字容器
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';
-      bubble.innerHTML = textHtml;
+      
+      const textSpan = document.createElement('span');
+      textSpan.className = 'message-text';
+      textSpan.innerHTML = textHtml;
+      bubble.appendChild(textSpan);
+      
+      // 2. 時間標籤 (獨立於文字外，點擊複製時不會讀到它)
+      const timeEl = document.createElement('div');
+      timeEl.className = 'message-time';
+      timeEl.innerText = timeStr;
+
       row.appendChild(bubble);
+      row.appendChild(timeEl);
+      
       chatContainer.appendChild(row);
       scrollToBottom();
       return row;
