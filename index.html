@@ -277,9 +277,10 @@
       userInput.disabled = true;
       sendBtn.disabled = true;
 
-      // 3. 顯示處理中動畫
+      // 3. 顯示處理中動畫，並抓取 AI 氣泡的時間元件
       const aiRowEl = appendMessage('ai', '<span class="loading-dots">處理中，請稍候<span>.</span><span>.</span><span>.</span></span>');
       const aiBubbleTextEl = aiRowEl.querySelector('.message-text');
+      const aiTimeEl = aiRowEl.querySelector('.message-time');
 
       try {
         // 將完整歷史紀錄傳給 GAS
@@ -290,6 +291,10 @@
         });
 
         const data = await response.json();
+
+        // 關鍵修改：AI 每次回傳完畢，立刻取得當下的最新時間並更新
+        const finishTimeStr = getCurrentFormattedTime();
+        aiTimeEl.innerText = finishTimeStr;
 
         if (data.reply) {
           aiBubbleTextEl.innerText = data.reply;
@@ -324,6 +329,8 @@
           aiBubbleTextEl.innerText = "⚠️ 系統回傳格式異常：" + JSON.stringify(data);
         }
       } catch (error) {
+        // 連線發生錯誤時，時間也同步更新為當下
+        aiTimeEl.innerText = getCurrentFormattedTime();
         aiBubbleTextEl.innerText = "❌ 連線發生錯誤：" + error.message;
       } finally {
         userInput.disabled = false;
